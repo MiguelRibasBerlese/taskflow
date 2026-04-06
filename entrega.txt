@@ -2,4 +2,4 @@ Disciplina: AC622 — Programação Mobile II
 Integrantes:
 - Miguel Ribas Berlese — 839938
 - Enzo Shimada Daun — 840552
-Link do repositório: [PREENCHER APÓS SUBIR NO GITHUB]
+Link do repositório: https://github.com/MiguelRibasBerlese/taskflow
