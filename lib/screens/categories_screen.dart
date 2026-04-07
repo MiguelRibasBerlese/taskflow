@@ -6,10 +6,14 @@ import '../utils/constants.dart';
 import '../utils/validators.dart';
 import '../widgets/empty_state.dart';
 
-class CategoriesScreen extends StatelessWidget {
+class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
 
-  // Cores predefinidas para novas categorias (tokens do projeto)
+  @override
+  State<CategoriesScreen> createState() => _CategoriesScreenState();
+}
+
+class _CategoriesScreenState extends State<CategoriesScreen> {
   static const _presetColors = [
     AppColors.primary,
     AppColors.error,
@@ -19,15 +23,31 @@ class CategoriesScreen extends StatelessWidget {
     AppColors.tertiary,
   ];
 
-  Future<void> _showAddDialog(BuildContext context) async {
+  // GlobalKey garante acesso ao ScaffoldMessenger sem depender de BuildContext
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  // Controller no nível do State — dispose gerenciado por dispose(), nunca manualmente
+  final _nameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _showAddDialog() {
+    // Reseta antes de abrir para reutilizar o controller com segurança
+    _nameController.clear();
+
+    // Tudo capturado sincronamente — zero uso de context após qualquer await
+    final provider = context.read<CategoryProvider>();
     final formKey = GlobalKey<FormState>();
-    final nameController = TextEditingController();
     var selectedColor = _presetColors[0];
 
-    await showDialog<void>(
+    showDialog<void>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setStateDialog) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           title: const Text(AppStrings.addCategory),
           content: Form(
             key: formKey,
@@ -38,22 +58,21 @@ class CategoriesScreen extends StatelessWidget {
                 Semantics(
                   label: 'Campo nome da categoria',
                   child: TextFormField(
-                    controller: nameController,
+                    controller: _nameController,
                     textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
                       labelText: AppStrings.categoryName,
                       prefixIcon: Icon(Icons.label_outline),
                     ),
-                    validator: (v) =>
-                        Validators.required(v, label: 'Nome'),
+                    validator: (v) => Validators.required(v, label: 'Nome'),
                     autofocus: true,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Cor',
-                  style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                  style: Theme.of(dialogContext).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -63,8 +82,7 @@ class CategoriesScreen extends StatelessWidget {
                   children: _presetColors.map((color) {
                     final isSelected = selectedColor == color;
                     return GestureDetector(
-                      onTap: () =>
-                          setStateDialog(() => selectedColor = color),
+                      onTap: () => setDialogState(() => selectedColor = color),
                       child: Container(
                         width: 36,
                         height: 36,
@@ -73,9 +91,7 @@ class CategoriesScreen extends StatelessWidget {
                           shape: BoxShape.circle,
                           border: isSelected
                               ? Border.all(
-                                  color: Theme.of(ctx)
-                                      .colorScheme
-                                      .onSurface,
+                                  color: Theme.of(dialogContext).colorScheme.onSurface,
                                   width: 3,
                                 )
                               : null,
@@ -84,13 +100,12 @@ class CategoriesScreen extends StatelessWidget {
                                   BoxShadow(
                                     color: color.withValues(alpha: 0.5),
                                     blurRadius: 6,
-                                  )
+                                  ),
                                 ]
                               : null,
                         ),
                         child: isSelected
-                            ? const Icon(Icons.check,
-                                color: Colors.white, size: 18)
+                            ? const Icon(Icons.check, color: Colors.white, size: 18)
                             : null,
                       ),
                     );
@@ -101,47 +116,19 @@ class CategoriesScreen extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text(AppStrings.cancel),
             ),
             TextButton(
               onPressed: () {
                 if (!formKey.currentState!.validate()) return;
-                context
-                    .read<CategoryProvider>()
-                    .add(nameController.text.trim(), selectedColor);
-                Navigator.pop(ctx);
+                provider.add(_nameController.text.trim(), selectedColor);
+                Navigator.of(dialogContext).pop();
               },
               child: const Text(AppStrings.save),
             ),
           ],
         ),
-      ),
-    );
-    nameController.dispose();
-  }
-
-  Future<bool?> _confirmDelete(BuildContext context, String name) {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Excluir categoria'),
-        content:
-            Text('Deseja excluir a categoria "$name"?\n'
-                'As tarefas vinculadas perderão a categoria.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(AppStrings.cancel),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(AppStrings.delete),
-          ),
-        ],
       ),
     );
   }
@@ -151,83 +138,115 @@ class CategoriesScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.categories)),
-      body: Consumer<CategoryProvider>(
-        builder: (context, provider, _) {
-          final categories = provider.categories;
+    return ScaffoldMessenger(
+      key: _messengerKey,
+      child: Scaffold(
+        appBar: AppBar(title: const Text(AppStrings.categories)),
+        body: Consumer<CategoryProvider>(
+          builder: (consumerContext, provider, _) {
+            final categories = provider.categories;
 
-          if (categories.isEmpty) {
-            return const EmptyState(
-              icon: Icons.category_outlined,
-              title: 'Nenhuma categoria',
-              subtitle: 'Toque em + para criar uma categoria.',
-            );
-          }
+            if (categories.isEmpty) {
+              return const EmptyState(
+                icon: Icons.category_outlined,
+                title: 'Nenhuma categoria',
+                subtitle: 'Toque em + para criar uma categoria.',
+              );
+            }
 
-          return ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 96),
-            itemCount: categories.length,
-            itemBuilder: (ctx, index) {
-              final cat = categories[index];
-              return Dismissible(
-                key: Key(cat.id),
-                direction: DismissDirection.endToStart,
-                confirmDismiss: (_) => _confirmDelete(ctx, cat.name),
-                onDismissed: (_) {
-                  provider.delete(cat.id);
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(
-                      content: Text('Categoria "${cat.name}" excluída'),
+            return ListView.builder(
+              padding: const EdgeInsets.only(top: 8, bottom: 96),
+              itemCount: categories.length,
+              itemBuilder: (_, index) {
+                final cat = categories[index];
+                return Dismissible(
+                  key: Key(cat.id),
+                  direction: DismissDirection.endToStart,
+                  confirmDismiss: (_) async {
+                    final confirmed = await showDialog<bool>(
+                      context: consumerContext,
+                      builder: (d) => AlertDialog(
+                        title: const Text('Excluir categoria'),
+                        content: Text(
+                          'Deseja excluir a categoria "${cat.name}"?\n'
+                          'As tarefas vinculadas perderão a categoria.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(d, false),
+                            child: const Text(AppStrings.cancel),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Theme.of(d).colorScheme.error,
+                            ),
+                            onPressed: () => Navigator.pop(d, true),
+                            child: const Text(AppStrings.delete),
+                          ),
+                        ],
+                      ),
+                    ) ??
+                        false;
+
+                    // Guarda caso a tela tenha sido desmontada durante o diálogo
+                    if (!mounted) return false;
+
+                    if (confirmed) {
+                      // SnackBar ANTES do dismiss — via GlobalKey, sem depender de context
+                      _messengerKey.currentState?.showSnackBar(
+                        SnackBar(
+                          content: Text('Categoria "${cat.name}" excluída'),
+                        ),
+                      );
+                    }
+                    return confirmed;
+                  },
+                  // onDismissed só chama o provider — zero uso de context
+                  onDismissed: (_) => provider.delete(cat.id),
+                  background: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 24),
+                    decoration: BoxDecoration(
+                      color: cs.errorContainer,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  );
-                },
-                background: Container(
-                  margin: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 4),
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 24),
-                  decoration: BoxDecoration(
-                    color: cs.errorContainer,
-                    borderRadius: BorderRadius.circular(16),
+                    child: Icon(Icons.delete_outline, color: cs.onErrorContainer, size: 28),
                   ),
-                  child: Icon(Icons.delete_outline,
-                      color: cs.onErrorContainer, size: 28),
-                ),
-                child: Card(
-                  margin: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 4),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 4),
-                    leading: CircleAvatar(
-                      backgroundColor:
-                          cat.color.withValues(alpha: 0.15),
-                      child: Icon(Icons.circle,
-                          color: cat.color, size: 20),
-                    ),
-                    title: Text(
-                      cat.name,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: cs.onSurface,
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: cat.color.withValues(alpha: 0.15),
+                        child: Icon(Icons.circle, color: cat.color, size: 20),
+                      ),
+                      title: Text(
+                        cat.name,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                      trailing: Icon(
+                        Icons.drag_indicator,
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                       ),
                     ),
-                    trailing: Icon(
-                      Icons.drag_indicator,
-                      color: cs.onSurfaceVariant.withValues(alpha: 0.4),
-                    ),
                   ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddDialog(context),
-        tooltip: AppStrings.addCategory,
-        child: const Icon(Icons.add),
+                );
+              },
+            );
+          },
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _showAddDialog,
+          tooltip: AppStrings.addCategory,
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
