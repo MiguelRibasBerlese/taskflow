@@ -1,0 +1,41 @@
+// firestore.rules
+// Regras de segurança — cada usuário só acessa seus próprios dados.
+// IMPORTANTE: aplicar no console Firebase (Firestore → Rules → Publicar)
+// antes do primeiro teste com kFirebaseEnabled = true.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Usuários: apenas o próprio usuário lê/edita seu perfil.
+    match /usuarios/{userId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // Tarefas: apenas o dono (uid gravado no documento).
+    match /tarefas/{docId} {
+      allow read, update, delete: if request.auth != null
+        && request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.uid;
+    }
+
+    // Categorias: apenas o dono.
+    match /categorias/{docId} {
+      allow read, update, delete: if request.auth != null
+        && request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.uid;
+    }
+
+    // Registros de atividade: apenas o dono.
+    match /registros_atividade/{docId} {
+      allow read, update, delete: if request.auth != null
+        && request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.uid;
+    }
+  }
+}

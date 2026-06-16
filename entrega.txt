@@ -3,3 +3,5 @@ Integrantes:
 - Miguel Ribas Berlese — 839938
 - Enzo Shimada Daun — 840552
 Link do repositório: https://github.com/MiguelRibasBerlese/taskflow
+Link de publicação (deploy web): <PREENCHER após o deploy — ex.: https://taskflow-xxxx.vercel.app>
+Link do vídeo de apresentação: <PREENCHER — YouTube/Drive, máx. 4 min (item obrigatório)>

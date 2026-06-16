@@ -60,4 +60,38 @@ class Validators {
     }
     return null;
   }
+
+  // ── Parte 2 (Firebase) ──────────────────────────────────────────────────
+  // Validação robusta de senha no cadastro Firebase (RF002):
+  // mínimo 8 caracteres, 1 maiúscula, 1 número e 1 caractere especial.
+  static String? senhaCadastro(String? value) {
+    if (value == null || value.isEmpty) return 'A senha é obrigatória.';
+    if (value.length < 8) {
+      return 'A senha deve ter pelo menos 8 caracteres.';
+    }
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      return 'Inclua pelo menos uma letra maiúscula.';
+    }
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      return 'Inclua pelo menos um número.';
+    }
+    if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(value)) {
+      return 'Inclua pelo menos um caractere especial (!@#\$%...).';
+    }
+    return null;
+  }
+
+  // Senha no login Firebase — apenas verifica preenchimento.
+  static String? senhaLogin(String? value) {
+    if (value == null || value.isEmpty) return 'A senha é obrigatória.';
+    return null;
+  }
+
+  // Confirmação de senha forte (usa as regras de senhaCadastro).
+  static String? confirmarSenhaForte(String? value, String original) {
+    final erro = senhaCadastro(value);
+    if (erro != null) return erro;
+    if (value != original) return 'As senhas não coincidem.';
+    return null;
+  }
 }

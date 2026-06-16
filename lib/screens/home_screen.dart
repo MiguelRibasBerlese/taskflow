@@ -92,6 +92,14 @@ class HomeScreen extends StatelessWidget {
                 },
               ),
               ListTile(
+                leading: const Icon(Icons.map_outlined),
+                title: const Text('Estados (IBGE)'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, AppRoutes.estados);
+                },
+              ),
+              ListTile(
                 leading: const Icon(Icons.info_outline),
                 title: const Text(AppStrings.about),
                 onTap: () {

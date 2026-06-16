@@ -75,7 +75,7 @@ class AppStrings {
 
   // About
   static const String about = 'Sobre';
-  static const String version = 'Versão 1.0.0';
+  static const String version = 'Versão 2.0.0 — Parte 2 (Firebase + API IBGE)';
 
   // General
   static const String save = 'Salvar';
@@ -103,6 +103,9 @@ class AppRoutes {
   static const String taskDetail = '/taskDetail';
   static const String categories = '/categories';
   static const String about = '/about';
+  static const String estados = '/estados';
+  static const String search = '/search';
+  static const String profile = '/profile';
 }
 
 // ─── Configurações gerais ─────────────────────────────────────────────────────

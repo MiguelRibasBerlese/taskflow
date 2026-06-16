@@ -94,7 +94,14 @@ class AboutScreen extends StatelessWidget {
                           const SizedBox(height: 12),
                           _InfoRow(
                             label: 'Versão',
-                            value: '1.0.0',
+                            value: '2.0.0 — Parte 2 (Firebase + API IBGE)',
+                          ),
+                          const SizedBox(height: 12),
+                          _InfoRow(
+                            label: 'Tecnologias',
+                            value:
+                                'Flutter · Dart · Firebase Auth · Cloud Firestore · '
+                                'API IBGE · Provider · Material Design 3',
                           ),
                         ],
                       ),
